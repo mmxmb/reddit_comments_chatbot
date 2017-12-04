@@ -16,6 +16,7 @@ def create_table():
 
 def format_data(data):
     data = data.replace('\n', ' newlinechar ').replace('\r', ' newlinechar ').replace('"', "'")
+    return data
 
 def find_parent(pid):
     try:
@@ -44,6 +45,8 @@ def find_existing_score(pid):
         return False
 
 def acceptable(data):
+    if data == None:
+        return False
     if len(data.split(' ')) > 50 or len(data) < 1: # interested in short comments (word count)
         return False
     elif len(data) > 1000: # interested in short comments (character count)
