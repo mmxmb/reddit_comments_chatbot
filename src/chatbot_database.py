@@ -5,7 +5,7 @@ from datetime import datetime
 timeframe = '2015-04'
 sql_transaction = []
 
-connection = sqlite3.connect('{}.db'.format(timeframe))
+connection = sqlite3.connect('/Users/lawnboymax/data/reddit_comments/dbs/{}.db'.format(timeframe))
 c = connection.cursor()
 
 def create_table():
@@ -126,6 +126,3 @@ if __name__=="__main__":
                                 
             if row_counter % 100000 == 0:
                 print("Total rows read: {}, Paired rows: {}, Time: {}".format(row_counter, paired_rows, str(datetime.now())))
-
-
-
