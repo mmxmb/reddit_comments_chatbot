@@ -1,8 +1,8 @@
-import sqlite.py
+import sqlite3
 import json
 from datetime import datetime
 
-timeframe = '2017-04'
+timeframe = '2015-04'
 sql_transaction = []
 
 connection = sqlite3.connect('{}.db'.format(timeframe))
@@ -27,7 +27,7 @@ def find_parent(pid):
         else:
             return False
     except Exception as e:
-        print('find_parent', e)
+        print('find_parent', str(e))
         return False
 
 def find_existing_score(pid):
@@ -40,18 +40,54 @@ def find_existing_score(pid):
         else:
             return False
     except Exception as e:
-        print('find_existing_score', e)
+        print('find_existing_score', str(e))
         return False
 
 def acceptable(data):
-    if len(data.split(' ')) > 50 or len(data) < 1:
+    if len(data.split(' ')) > 50 or len(data) < 1: # interested in short comments (word count)
         return False
-    elif len(data) > 1000:
+    elif len(data) > 1000: # interested in short comments (character count)
         return False
-    elif data = '[deleted]' or data = '[removed]':
+    elif data == '[deleted]' or data == '[removed]':
         return False
     else:
         return True
+
+def sql_insert_replace_comment(commentid,parentid,parent,comment,subreddit,time,score):
+    try:
+        sql = """UPDATE parent_reply SET parent_id = ?, comment_id = ?, parent = ?, comment = ?, subreddit = ?, unix = ?, score = ? WHERE parent_id =?;""".format(parentid, commentid, parent, comment, subreddit, int(time), score, parentid)
+        transaction_bldr(sql)
+    except Exception as e:
+        print('s-UPDATE',str(e))
+
+def sql_insert_has_parent(commentid,parentid,parent,comment,subreddit,time,score):
+    try:
+        sql = """INSERT INTO parent_reply (parent_id, comment_id, parent, comment, subreddit, unix, score) VALUES ("{}","{}","{}","{}","{}",{},{});""".format(parentid, commentid, parent, comment, subreddit, int(time), score)
+        transaction_bldr(sql)
+    except Exception as e:
+        print('s-PARENT',str(e))
+
+
+def sql_insert_no_parent(commentid,parentid,comment,subreddit,time,score):
+    try:
+        sql = """INSERT INTO parent_reply (parent_id, comment_id, comment, subreddit, unix, score) VALUES ("{}","{}","{}","{}",{},{});""".format(parentid, commentid, comment, subreddit, int(time), score)
+        transaction_bldr(sql)
+    except Exception as e:
+        print('s-NO_PARENT',str(e))
+
+def transaction_bldr(sql):
+    global sql_transaction
+    sql_transaction.append(sql)
+    if len(sql_transaction) > 10000:
+        c.execute('BEGIN TRANSACTION')
+        for s in sql_transaction:
+            try:
+                c.execute(s)
+            except:
+                pass
+        connection.commit()
+        sql_transaction = []
+
 
 if __name__=="__main__":
     create_table()
@@ -60,9 +96,9 @@ if __name__=="__main__":
 
     with open('/Users/lawnboymax/data/reddit_comments/{}/RC_{}'.format(timeframe.split('-')[0], timeframe), buffering=1000) as f:
         for row in f:
-            print(row)
             row_counter += 1
             row = json.loads(row)
+            comment_id = row['name']
             parent_id = row['parent_id']
             body = format_data(row['body'])
             created_utc = row['created_utc']
@@ -72,9 +108,21 @@ if __name__=="__main__":
             parent_data = find_parent(parent_id)
 
             if score >= 2: #threshold to filter useless comments (low score)
-                existing_comment_score = find_existing_score(parent_id)
-                if existing_comment_score:
-                    if score > existing_comment_score:
+                    existing_comment_score = find_existing_score(parent_id)
+                    if existing_comment_score:
+                        if score > existing_comment_score:
+                            if acceptable(body):
+                                sql_insert_replace_comment(comment_id, parent_id, parent_data, body, subreddit, created_utc, score)
+                    else:
+                        if acceptable(body):
+                            if parent_data:
+                                sql_insert_has_parent(comment_id, parent_id, parent_data, body, subreddit, created_utc, score)
+                                paired_rows += 1
+                            else:
+                                sql_insert_no_parent(comment_id, parent_id, body, subreddit, created_utc, score)
+                                
+            if row_counter % 100000 == 0:
+                print("Total rows read: {}, Paired rows: {}, Time: {}".format(row_counter, paired_rows, str(datetime.now())))
 
 
 
