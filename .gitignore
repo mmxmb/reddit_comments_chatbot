@@ -4,3 +4,6 @@
 pip-selfcheck.json
 __pycache__/
 .DS_Store/
+
+# some dev notes
+notes
