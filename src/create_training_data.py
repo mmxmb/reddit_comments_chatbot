@@ -1,14 +1,16 @@
 import sqlite3
 import pandas as pd
 
-timeframes = '2015-04'
+timeframes = ['2015-04']
+data_dir = '/Users/lawnboymax/data/reddit_comments/'
+
 
 for timeframe in timeframes:
-    connection = sqlite3.connect('/Users/lawnboymax/data/reddit_comments/dbs/{}.db'.format(timeframe))
+    connection = sqlite3.connect(data_dir + 'dbs/{}.db'.format(timeframe))
     c = connection.cursor()
     limit = 5000
     last_unix = 0
-    cur_length = 0
+    cur_length = limit
     counter = 0
     test_done = False
 
@@ -17,18 +19,18 @@ for timeframe in timeframes:
         last_unix = df.tail(1)['unix'].values[0]
         cur_length = len(df)
         if not test_done:
-            with open('test.from', 'a', encoding='utf8') as f:
+            with open(data_dir + 'model_data/test/test.from', 'a', encoding='utf8') as f:
                 for content in df['parent'].values:
                     f.write(content + '\n')
-            with open('test.to', 'a', encoding='utf8') as f:
+            with open(data_dir +'model_data/test/test.to', 'a', encoding='utf8') as f:
                 for content in df['comment'].values:
                     f.write(content + '\n')
             test_done = True
         else:
-            with open('train.from', 'a', encoding='utf8') as f:
+            with open(data_dir +'model_data/train/train.from', 'a', encoding='utf8') as f:
                 for content in df['parent'].values:
                     f.write(content + '\n')
-            with open('train.to', 'a', encoding='utf8') as f:
+            with open(data_dir +'model_data/train/train.to', 'a', encoding='utf8') as f:
                 for content in df['comment'].values:
                     f.write(content + '\n')
 
