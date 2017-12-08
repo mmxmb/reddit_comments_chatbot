@@ -5,8 +5,9 @@ from datetime import datetime
 timeframe = '2015-04'
 sql_transaction = []
 
-connection = sqlite3.connect('/Users/lawnboymax/data/reddit_comments/dbs/{}.db'.format(timeframe))
+connection = sqlite3.connect('/Users/lawnboymax/data/reddit_comments/dbs/{}test.db'.format(timeframe))
 c = connection.cursor()
+
 
 def create_table():
     c.execute("""CREATE TABLE IF NOT EXISTS parent_reply 
@@ -96,6 +97,9 @@ if __name__=="__main__":
     create_table()
     row_counter = 0
     paired_rows = 0
+    with open('/Users/lawnboymax/data/reddit_comments/crypto_subreddits') as f:
+        subreddits = f.read().splitlines()
+        print(subreddits)
 
     with open('/Users/lawnboymax/data/reddit_comments/{}/RC_{}'.format(timeframe.split('-')[0], timeframe), buffering=1000) as f:
         for row in f:
@@ -106,7 +110,10 @@ if __name__=="__main__":
             body = format_data(row['body'])
             created_utc = row['created_utc']
             score = row['score']
-            subreddit = row['subreddit']
+            if row['subreddit'] not in subreddits:
+                continue
+            else:
+                subreddit = row['subreddit']
 
             parent_data = find_parent(parent_id)
 
