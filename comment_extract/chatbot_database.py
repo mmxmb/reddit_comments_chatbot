@@ -1,6 +1,7 @@
 import sqlite3
 import json
 from datetime import datetime
+import concurrent.futures
 
 timeframe = '2015-04'
 sql_transaction = []
