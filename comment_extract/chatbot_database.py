@@ -1,12 +1,15 @@
 import sqlite3
 import json
 from datetime import datetime
-import concurrent.futures
+import bz2
+import os
 
-timeframe = '2015-04'
+timeframe = '2016-01'
 sql_transaction = []
+data_dir = os.path.abspath('/home/lawnboymax/projects/chatbot_data')
+crypto_subreddits = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'crypto_subreddits'))
 
-connection = sqlite3.connect('/Users/lawnboymax/data/reddit_comments/dbs/{}test.db'.format(timeframe))
+connection = sqlite3.connect(os.path.join(data_dir, 'dbs', '{}.db'.format(timeframe)))
 c = connection.cursor()
 
 
@@ -93,17 +96,21 @@ def transaction_bldr(sql):
         connection.commit()
         sql_transaction = []
 
+def get_subreddits(subreddits_file):
+    with open(subreddits_file) as f:
+        subreddits = f.read().lower().splitlines()
+        return subreddits
+        
 
 if __name__=="__main__":
     create_table()
     row_counter = 0
     paired_rows = 0
-    with open('/Users/lawnboymax/data/reddit_comments/crypto_subreddits') as f:
-        subreddits = f.read().splitlines()
-        print(subreddits)
+    subreddits = get_subreddits(crypto_subreddits)
 
-    with open('/Users/lawnboymax/data/reddit_comments/{}/RC_{}'.format(timeframe.split('-')[0], timeframe), buffering=1000) as f:
+    with open(os.path.join(data_dir, 'reddit_comments', '{}'.format(timeframe.split('-')[0]), 'RC_{}.bz2'.format(timeframe)), buffering=1000) as f:
         for row in f:
+            print(row)
             row_counter += 1
             row = json.loads(row)
             comment_id = row['name']
