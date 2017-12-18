@@ -4,9 +4,10 @@ from datetime import datetime
 import bz2
 import os
 
-timeframe = '2016-01'
+timeframe = '2017-11'
 sql_transaction = []
-data_dir = os.path.abspath('/home/lawnboymax/projects/chatbot_data')
+#data_dir = os.path.abspath('/home/lawnboymax/projects/chatbot_data')
+data_dir = os.path.abspath('/Users/lawnboymax/data/reddit_comments')
 crypto_subreddits = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'crypto_subreddits'))
 
 connection = sqlite3.connect(os.path.join(data_dir, 'dbs', '{}.db'.format(timeframe)))
@@ -108,12 +109,14 @@ if __name__=="__main__":
     paired_rows = 0
     subreddits = get_subreddits(crypto_subreddits)
 
-    with open(os.path.join(data_dir, 'reddit_comments', '{}'.format(timeframe.split('-')[0]), 'RC_{}.bz2'.format(timeframe)), buffering=1000) as f:
+    with open(os.path.join(data_dir, '{}'.format(timeframe.split('-')[0]), 'RC_{}'.format(timeframe)), buffering=1000) as f:
         for row in f:
-            print(row)
             row_counter += 1
             row = json.loads(row)
-            comment_id = row['name']
+            try:
+                comment_id = row['name']
+            except KeyError:
+                comment_id = row['author']
             parent_id = row['parent_id']
             body = format_data(row['body'])
             created_utc = row['created_utc']
