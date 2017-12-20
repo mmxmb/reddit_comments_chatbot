@@ -13,7 +13,7 @@ def format_data(data):
     data = data.replace('\n',' newlinechar ').replace('\r',' newlinechar ').replace('"',"'")
     return data
 
-def transaction_bldr(c,sql_transaction,sql):
+def transaction_bldr(c,connection,sql_transaction,sql):
     sql_transaction.append(sql)
     if len(sql_transaction) > 1000:
         c.execute('BEGIN TRANSACTION')
@@ -25,24 +25,24 @@ def transaction_bldr(c,sql_transaction,sql):
         connection.commit()
         sql_transaction = []
 
-def sql_insert_replace_comment(c,sql_transaction,commentid,parentid,parent,comment,subreddit,time,score):
+def sql_insert_replace_comment(c,connection,sql_transaction,commentid,parentid,parent,comment,subreddit,time,score):
     try:
         sql = """UPDATE parent_reply SET parent_id = ?,comment_id = ?,parent = ?,comment = ?,subreddit = ?,unix = ?,score = ? WHERE parent_id =?;""".format(parentid,commentid,parent,comment,subreddit,int(time),score,parentid)
-        transaction_bldr(c,sql_transaction,sql)
+        transaction_bldr(c,connection,sql_transaction,sql)
     except Exception as e:
         print('s0 insertion 33',str(e))
 
-def sql_insert_has_parent(c,sql_transaction,commentid,parentid,parent,comment,subreddit,time,score):
+def sql_insert_has_parent(c,connection,sql_transaction,commentid,parentid,parent,comment,subreddit,time,score):
     try:
         sql = """INSERT INTO parent_reply (parent_id,comment_id,parent,comment,subreddit,unix,score) VALUES ("{}","{}","{}","{}","{}",{},{});""".format(parentid,commentid,parent,comment,subreddit,int(time),score)
-        transaction_bldr(c,sql_transaction,sql)
+        transaction_bldr(c,connection,sql_transaction,sql)
     except Exception as e:
         print('s0 insertion 40',str(e))
 
-def sql_insert_no_parent(c,sql_transaction,commentid,parentid,comment,subreddit,time,score):
+def sql_insert_no_parent(c,connection,sql_transaction,commentid,parentid,comment,subreddit,time,score):
     try:
         sql = """INSERT INTO parent_reply (parent_id,comment_id,comment,subreddit,unix,score) VALUES ("{}","{}","{}","{}",{},{});""".format(parentid,commentid,comment,subreddit,int(time),score)
-        transaction_bldr(c,sql_transaction,sql)
+        transaction_bldr(c,connection,sql_transaction,sql)
     except Exception as e:
         print('s0 insertion 47',str(e))
 
@@ -126,16 +126,16 @@ def create_and_fill_db(timeframe):
                     if existing_comment_score:
                         if score > existing_comment_score:
                             if acceptable(body):
-                                sql_insert_replace_comment(c,sql_transaction,comment_id,parent_id,parent_data,body,subreddit,created_utc,score)
+                                sql_insert_replace_comment(c,connection,sql_transaction,comment_id,parent_id,parent_data,body,subreddit,created_utc,score)
                                 
                     else:
                         if acceptable(body):
                             if parent_data:
                                 if score >= 1:
-                                    sql_insert_has_parent(c,sql_transaction,comment_id,parent_id,parent_data,body,subreddit,created_utc,score)
+                                    sql_insert_has_parent(c,connection,sql_transaction,comment_id,parent_id,parent_data,body,subreddit,created_utc,score)
                                     paired_rows += 1
                             else:
-                                sql_insert_no_parent(c,sql_transaction,comment_id,parent_id,body,subreddit,created_utc,score)
+                                sql_insert_no_parent(c,connection,sql_transaction,comment_id,parent_id,body,subreddit,created_utc,score)
                 except Exception as e:
                     print(str(e))
                             
