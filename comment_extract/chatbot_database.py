@@ -148,18 +148,17 @@ def create_and_fill_db(timeframe):
                     connection.commit()
                     c.execute("VACUUM")
                     connection.commit()
-
-
+                    
+# Need to define these vars at module level for Windows multiprocessing compatability
+# See: https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods
+timeframes = ['2017-06','2017-07']
+start_row = 0
+cleanup = 1000000
+data_dir = os.path.abspath('/Users/lawnboymax/data/reddit_comments')
+crypto_subreddits_file = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','crypto_subreddits'))
+crypto_subreddits = get_subreddits(crypto_subreddits_file)
     
 if __name__ == '__main__':
-
-    timeframes = ['2017-06','2017-07']
-    start_row = 0
-    cleanup = 1000000
-
-    data_dir = os.path.abspath('/Users/lawnboymax/data/reddit_comments')
-    crypto_subreddits_file = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','crypto_subreddits'))
-    crypto_subreddits = get_subreddits(crypto_subreddits_file)
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for timeframe,_ in zip(timeframes,executor.map(create_and_fill_db,timeframes)):
