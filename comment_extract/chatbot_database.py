@@ -3,27 +3,17 @@ import json
 from datetime import datetime
 import time
 import os
+import bz2
+import concurrent.futures
 
-timeframe = '2017-10'
-sql_transaction = []
-start_row = 0
-cleanup = 1000000
-
-data_dir = os.path.abspath('/Users/lawnboymax/data/reddit_comments')
-crypto_subreddits = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'crypto_subreddits'))
-
-connection = sqlite3.connect(os.path.join(data_dir, 'dbs', '{}.db'.format(timeframe)))
-c = connection.cursor()
-
-def create_table():
-    c.execute("CREATE TABLE IF NOT EXISTS parent_reply(parent_id TEXT PRIMARY KEY, comment_id TEXT UNIQUE, parent TEXT, comment TEXT, subreddit TEXT, unix INT, score INT)")
+def create_table(c):
+    c.execute("CREATE TABLE IF NOT EXISTS parent_reply(parent_id TEXT PRIMARY KEY,comment_id TEXT UNIQUE,parent TEXT,comment TEXT,subreddit TEXT,unix INT,score INT)")
 
 def format_data(data):
     data = data.replace('\n',' newlinechar ').replace('\r',' newlinechar ').replace('"',"'")
     return data
 
-def transaction_bldr(sql):
-    global sql_transaction
+def transaction_bldr(c,sql_transaction,sql):
     sql_transaction.append(sql)
     if len(sql_transaction) > 1000:
         c.execute('BEGIN TRANSACTION')
@@ -35,26 +25,26 @@ def transaction_bldr(sql):
         connection.commit()
         sql_transaction = []
 
-def sql_insert_replace_comment(commentid,parentid,parent,comment,subreddit,time,score):
+def sql_insert_replace_comment(c,sql_transaction,commentid,parentid,parent,comment,subreddit,time,score):
     try:
-        sql = """UPDATE parent_reply SET parent_id = ?, comment_id = ?, parent = ?, comment = ?, subreddit = ?, unix = ?, score = ? WHERE parent_id =?;""".format(parentid, commentid, parent, comment, subreddit, int(time), score, parentid)
-        transaction_bldr(sql)
+        sql = """UPDATE parent_reply SET parent_id = ?,comment_id = ?,parent = ?,comment = ?,subreddit = ?,unix = ?,score = ? WHERE parent_id =?;""".format(parentid,commentid,parent,comment,subreddit,int(time),score,parentid)
+        transaction_bldr(c,sql_transaction,sql)
     except Exception as e:
-        print('s0 insertion',str(e))
+        print('s0 insertion 33',str(e))
 
-def sql_insert_has_parent(commentid,parentid,parent,comment,subreddit,time,score):
+def sql_insert_has_parent(c,sql_transaction,commentid,parentid,parent,comment,subreddit,time,score):
     try:
-        sql = """INSERT INTO parent_reply (parent_id, comment_id, parent, comment, subreddit, unix, score) VALUES ("{}","{}","{}","{}","{}",{},{});""".format(parentid, commentid, parent, comment, subreddit, int(time), score)
-        transaction_bldr(sql)
+        sql = """INSERT INTO parent_reply (parent_id,comment_id,parent,comment,subreddit,unix,score) VALUES ("{}","{}","{}","{}","{}",{},{});""".format(parentid,commentid,parent,comment,subreddit,int(time),score)
+        transaction_bldr(c,sql_transaction,sql)
     except Exception as e:
-        print('s0 insertion',str(e))
+        print('s0 insertion 40',str(e))
 
-def sql_insert_no_parent(commentid,parentid,comment,subreddit,time,score):
+def sql_insert_no_parent(c,sql_transaction,commentid,parentid,comment,subreddit,time,score):
     try:
-        sql = """INSERT INTO parent_reply (parent_id, comment_id, comment, subreddit, unix, score) VALUES ("{}","{}","{}","{}",{},{});""".format(parentid, commentid, comment, subreddit, int(time), score)
-        transaction_bldr(sql)
+        sql = """INSERT INTO parent_reply (parent_id,comment_id,comment,subreddit,unix,score) VALUES ("{}","{}","{}","{}",{},{});""".format(parentid,commentid,comment,subreddit,int(time),score)
+        transaction_bldr(c,sql_transaction,sql)
     except Exception as e:
-        print('s0 insertion',str(e))
+        print('s0 insertion 47',str(e))
 
 def acceptable(data):
     if len(data.split(' ')) > 1000 or len(data) < 1:
@@ -68,7 +58,7 @@ def acceptable(data):
     else:
         return True
 
-def find_parent(pid):
+def find_parent(c,pid):
     try:
         sql = "SELECT comment FROM parent_reply WHERE comment_id = '{}' LIMIT 1".format(pid)
         c.execute(sql)
@@ -80,7 +70,7 @@ def find_parent(pid):
         #print(str(e))
         return False
 
-def find_existing_score(pid):
+def find_existing_score(c,pid):
     try:
         sql = "SELECT score FROM parent_reply WHERE parent_id = '{}' LIMIT 1".format(pid)
         c.execute(sql)
@@ -96,20 +86,22 @@ def get_subreddits(subreddits_file):
     with open(subreddits_file) as f:
         subreddits = f.read().lower().splitlines()
         return subreddits
+
+def create_and_fill_db(timeframe):
     
-if __name__ == '__main__':
-    create_table()
+    connection = sqlite3.connect(os.path.join(data_dir,'dbs','{}.db'.format(timeframe)))
+    c = connection.cursor()
+    create_table(c)
+
+    sql_transaction = []
     row_counter = 0
     paired_rows = 0
-    crypto_subreddits = get_subreddits(crypto_subreddits)
 
-    with open(os.path.join(data_dir, '{}'.format(timeframe.split('-')[0]), 'RC_{}'.format(timeframe)), buffering=1000) as f:
+    with bz2.BZ2File(os.path.join(data_dir,'{}'.format(timeframe.split('-')[0]),'RC_{}.bz2'.format(timeframe)),buffering=1000) as f:
         for row in f:
-            #print(row)
-            #time.sleep(555)
             row_counter += 1
             if row_counter % 100000 == 0:
-                print('Total Rows Read: {}, Paired Rows: {}, Time: {}'.format(row_counter, paired_rows, str(datetime.now())))
+                print('Timeframe: [{}],Total Rows Read: {},Paired Rows: {},Time: {}'.format(timeframe,row_counter,paired_rows,str(datetime.now())))
 
             if row_counter > start_row:
                 try:
@@ -127,22 +119,22 @@ if __name__ == '__main__':
                     else:
                         continue
                         
-                    parent_data = find_parent(parent_id)
+                    parent_data = find_parent(c,parent_id)
                     
-                    existing_comment_score = find_existing_score(parent_id)
+                    existing_comment_score = find_existing_score(c,parent_id)
                     if existing_comment_score:
                         if score > existing_comment_score:
                             if acceptable(body):
-                                sql_insert_replace_comment(comment_id,parent_id,parent_data,body,subreddit,created_utc,score)
+                                sql_insert_replace_comment(c,sql_transaction,comment_id,parent_id,parent_data,body,subreddit,created_utc,score)
                                 
                     else:
                         if acceptable(body):
                             if parent_data:
-                                if score >= 2:
-                                    sql_insert_has_parent(comment_id,parent_id,parent_data,body,subreddit,created_utc,score)
+                                if score >= 1:
+                                    sql_insert_has_parent(c,sql_transaction,comment_id,parent_id,parent_data,body,subreddit,created_utc,score)
                                     paired_rows += 1
                             else:
-                                sql_insert_no_parent(comment_id,parent_id,body,subreddit,created_utc,score)
+                                sql_insert_no_parent(c,sql_transaction,comment_id,parent_id,body,subreddit,created_utc,score)
                 except Exception as e:
                     print(str(e))
                             
@@ -155,3 +147,19 @@ if __name__ == '__main__':
                     connection.commit()
                     c.execute("VACUUM")
                     connection.commit()
+
+
+    
+if __name__ == '__main__':
+
+    timeframes = ['2017-06','2017-07']
+    start_row = 0
+    cleanup = 1000000
+
+    data_dir = os.path.abspath('/Users/lawnboymax/data/reddit_comments')
+    crypto_subreddits_file = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','crypto_subreddits'))
+    crypto_subreddits = get_subreddits(crypto_subreddits_file)
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for timeframe,_ in zip(timeframes,executor.map(create_and_fill_db,timeframes)):
+            pass    
