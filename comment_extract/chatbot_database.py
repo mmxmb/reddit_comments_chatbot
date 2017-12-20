@@ -106,6 +106,11 @@ def create_and_fill_db(timeframe):
             if row_counter > start_row:
                 try:
                     row = json.loads(row)
+                    
+                    if subreddit in crypto_subreddits:
+                        pass
+                    else:
+                        continue
                     parent_id = row['parent_id'].split('_')[1]
                     body = format_data(row['body'])
                     created_utc = row['created_utc']
@@ -114,10 +119,6 @@ def create_and_fill_db(timeframe):
                     comment_id = row['id']
                     
                     subreddit = row['subreddit'].lower()
-                    if subreddit in crypto_subreddits:
-                        pass
-                    else:
-                        continue
                         
                     parent_data = find_parent(c,parent_id)
                     
