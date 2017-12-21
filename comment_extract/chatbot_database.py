@@ -89,7 +89,7 @@ def get_subreddits(subreddits_file):
 
 def create_and_fill_db(timeframe):
     
-    connection = sqlite3.connect(os.path.join(data_dir,'dbs','{}.db'.format(timeframe)))
+    connection = sqlite3.connect(os.path.join(data_dir,'dbs','{}'.format(timeframe.split('-')[0]),'{}.db'.format(timeframe)))
     c = connection.cursor()
     create_table(c)
 
@@ -100,13 +100,13 @@ def create_and_fill_db(timeframe):
     with bz2.BZ2File(os.path.join(data_dir,'years','{}'.format(timeframe.split('-')[0]),'RC_{}.bz2'.format(timeframe)),buffering=1000) as f:
         for row in f:
             row_counter += 1
-            if row_counter % 10000 == 0:
+            if row_counter % 100000 == 0:
                 print('Timeframe: [{}],Total Rows Read: {},Paired Rows: {},Time: {}'.format(timeframe,row_counter,paired_rows,str(datetime.now())))
 
             if row_counter > start_row:
                 try:
                     row = json.loads(row)
-                    
+
                     subreddit = row['subreddit'].lower()
                     if subreddit in crypto_subreddits:
                         pass
