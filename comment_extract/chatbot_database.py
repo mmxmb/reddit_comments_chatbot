@@ -97,16 +97,17 @@ def create_and_fill_db(timeframe):
     row_counter = 0
     paired_rows = 0
 
-    with bz2.BZ2File(os.path.join(data_dir,'{}'.format(timeframe.split('-')[0]),'RC_{}.bz2'.format(timeframe)),buffering=1000) as f:
+    with bz2.BZ2File(os.path.join(data_dir,'years','{}'.format(timeframe.split('-')[0]),'RC_{}.bz2'.format(timeframe)),buffering=1000) as f:
         for row in f:
             row_counter += 1
-            if row_counter % 100000 == 0:
+            if row_counter % 10000 == 0:
                 print('Timeframe: [{}],Total Rows Read: {},Paired Rows: {},Time: {}'.format(timeframe,row_counter,paired_rows,str(datetime.now())))
 
             if row_counter > start_row:
                 try:
                     row = json.loads(row)
                     
+                    subreddit = row['subreddit'].lower()
                     if subreddit in crypto_subreddits:
                         pass
                     else:
@@ -117,8 +118,6 @@ def create_and_fill_db(timeframe):
                     score = row['score']
                     
                     comment_id = row['id']
-                    
-                    subreddit = row['subreddit'].lower()
                         
                     parent_data = find_parent(c,parent_id)
                     
@@ -151,15 +150,16 @@ def create_and_fill_db(timeframe):
                     
 # Need to define these vars at module level for Windows multiprocessing compatability
 # See: https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods
-timeframes = ['2017-06','2017-07']
+timeframes = ['2017-01', '2017-02', '2017-03', '2017-04', '2017-05', '2017-06', '2017-07', '2017-08', '2017-09', '2017-10', '2017-11', '2016-12', '2016-11', '2016-10', '2016-09', '2016-08']
 start_row = 0
 cleanup = 1000000
-data_dir = os.path.abspath('/Users/lawnboymax/data/reddit_comments')
+data_dir = os.path.abspath('/Volumes/glyph_500/data/reddit_comments')
 crypto_subreddits_file = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','crypto_subreddits'))
 crypto_subreddits = get_subreddits(crypto_subreddits_file)
-    
-if __name__ == '__main__':
 
+if __name__ == '__main__':
+    startTime = datetime.now()
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for timeframe,_ in zip(timeframes,executor.map(create_and_fill_db,timeframes)):
             pass    
+    print(datetime.now() - startTime)
