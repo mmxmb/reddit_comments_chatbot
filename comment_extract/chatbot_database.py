@@ -85,7 +85,7 @@ def find_existing_score(c,pid):
 def get_subreddits(subreddits_file):
     with open(subreddits_file) as f:
         subreddits = f.read().lower().splitlines()
-        return subreddits
+        return set(subreddits) # use set for O(1) comparison
 
 def create_and_fill_db(timeframe):
     
