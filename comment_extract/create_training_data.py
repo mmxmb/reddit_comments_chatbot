@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 import os
 
-def create_training_data(timeframe)
+def create_training_data(timeframe):
 
     connection = sqlite3.connect(os.path.join(data_dir, 'dbs', '{}.db'.format(timeframe)))
     c = connection.cursor()
@@ -38,7 +38,7 @@ def create_training_data(timeframe)
         if counter % 20 == 0:
             print(counter*limit, 'rows completed')
             
-data_dir = os.path.abspath('/Volumes/glyph_500/data/reddit_comments')
+data_dir = os.path.abspath('/home/ubuntu/')
 train_dir = os.path.join(data_dir, 'model_data', 'train')
 test_dir = os.path.join(data_dir, 'model_data', 'test')
 timeframes = ['2017-01', '2017-02', '2017-03', '2017-04', '2017-05', '2017-06', '2017-07', '2017-08', '2017-09', '2017-10', '2017-11', 
