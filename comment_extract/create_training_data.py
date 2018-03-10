@@ -46,6 +46,6 @@ timeframes = ['2017-01', '2017-02', '2017-03', '2017-04', '2017-05', '2017-06', 
 if __name__ == '__main__':
     startTime = datetime.now()
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        for timeframe,_ in zip(timeframes,executor.map(create_training_data,timeframes)):
+        for timeframe in executor.map(create_training_data,timeframes):
             pass    
     print(datetime.now() - startTime)
